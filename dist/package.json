@@ -1,0 +1,17 @@
+{
+		"version": "1.0.0.0",
+		"author": {"name":"Alex Murtha","email":"a.ferreira@ocyan-sa.com"},
+		"resources": [
+			{
+				"resourceId": "rId0",
+				"sourceType": 5,
+				"file": "resources/TabelaInterativa.pbiviz.json"
+			}
+		],
+		"visual": {"name":"Tabela Interativa","displayName":"Tabela Interativa","guid":"TabelaInterativa","visualClassName":"Visual","version":"1.0.0.0","description":"Tabela customizada para controle de frequência","supportUrl":"https://github.com/","gitHubUrl":"https://github.com/"},
+		"metadata": {
+			"pbivizjson": {
+				"resourceId": "rId0"
+			}
+		}
+	}
