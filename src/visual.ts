@@ -6,9 +6,12 @@
  * Estrutura:
  * - Colunas informativas independentes a esquerda;
  * - Colunas mensais dinamicas a direita;
+ * - Coluna "Total Geral" a direita, com a soma de cada linha;
+ * - Linha "Total Mensal" fixa no rodape, com a soma de cada mes;
  * - Uma medida ou campo exibido em cada celula mensal;
  * - Detalhamento opcional ao clicar em uma celula;
  * - Titulo configuravel pelo painel de formatacao;
+ * - Todas as cores sao configuraveis pelo painel de formatacao;
  * - Exportacao dos dados apresentados para CSV.
  *
  * O campo configurado em "Data" pode ser uma data real ou um texto
@@ -31,7 +34,12 @@ import FormattingModel = powerbi.visuals.FormattingModel;
 import { VisualFormattingSettingsModel } from "./settings";
 
 /**
- * CSS principal do visual.
+ * CSS estrutural do visual.
+ *
+ * Este CSS controla apenas layout, posicionamento e comportamento
+ * (sticky, scroll, espacamentos). Nenhuma cor fixa e definida aqui;
+ * todas as cores sao aplicadas via estilo inline a partir das
+ * configuracoes escolhidas no painel de formatacao.
  */
 const VISUAL_CSS = `
 .fperiod-wrap {
@@ -40,7 +48,7 @@ const VISUAL_CSS = `
     height: 100%;
     overflow: hidden;
     font-family: Calibri, "Segoe UI", sans-serif;
-    background: #ffffff;
+    background: transparent;
 }
 
 .fperiod-title {
@@ -83,7 +91,8 @@ const VISUAL_CSS = `
 }
 
 .fperiod-th-info,
-.fperiod-th-period {
+.fperiod-th-period,
+.fperiod-th-total {
     position: sticky;
     z-index: 11;
     padding: 6px 8px;
@@ -96,16 +105,17 @@ const VISUAL_CSS = `
     min-width: 90px;
 }
 
-.fperiod-th-period {
+.fperiod-th-period,
+.fperiod-th-total {
     min-width: 64px;
 }
 
 .fperiod-td-info,
-.fperiod-td-period {
+.fperiod-td-period,
+.fperiod-td-total {
     box-sizing: border-box;
     padding: 6px 8px;
     white-space: nowrap;
-    color: #333333;
 }
 
 .fperiod-td-info {
@@ -118,12 +128,38 @@ const VISUAL_CSS = `
     font-weight: normal;
 }
 
+.fperiod-td-total {
+    min-width: 64px;
+    text-align: center;
+    font-weight: bold;
+}
+
 .fperiod-td-period.clickable {
     cursor: pointer;
 }
 
 .fperiod-td-period.clickable:hover {
     filter: brightness(0.94);
+}
+
+/* Rodape fixo (Total Mensal) */
+.fperiod-tfoot-cell {
+    position: sticky;
+    bottom: 0;
+    z-index: 11;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    text-align: center;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.fperiod-tfoot-label {
+    text-align: left;
+}
+
+.fperiod-tfoot-corner {
+    z-index: 13;
 }
 
 .fperiod-empty {
@@ -140,7 +176,6 @@ const VISUAL_CSS = `
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.45);
     z-index: 99998;
 }
 
@@ -156,14 +191,11 @@ const VISUAL_CSS = `
     max-height: 80vh;
     overflow: auto;
     padding: 14px;
-    background: #2E4153;
-    border: 1px solid #3F5B70;
     border-radius: 10px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     z-index: 99999;
     font-family: Calibri, "Segoe UI", sans-serif;
     font-size: 12px;
-    color: #ffffff;
 }
 
 .fperiod-modal-header {
@@ -176,7 +208,6 @@ const VISUAL_CSS = `
     flex: 1;
     font-size: 13px;
     font-weight: bold;
-    color: #ffffff;
 }
 
 .fperiod-modal-close {
@@ -186,16 +217,10 @@ const VISUAL_CSS = `
     width: 26px;
     height: 26px;
     padding: 0;
-    background: #3F5B70;
     border: none;
     border-radius: 50%;
-    color: #ffffff;
     font-size: 14px;
     cursor: pointer;
-}
-
-.fperiod-modal-close:hover {
-    background: #4E6E85;
 }
 
 .fperiod-modal-table {
@@ -207,29 +232,39 @@ const VISUAL_CSS = `
     position: sticky;
     top: 0;
     padding: 5px 8px;
-    background: #3F5B70;
-    border: 1px solid #4E6E85;
-    color: #ffffff;
     font-weight: bold;
     white-space: nowrap;
 }
 
 .fperiod-modal-table td {
     padding: 4px 7px;
-    background: #2E4153;
-    border: 1px solid #3F5B70;
-    color: #ffffff;
     white-space: nowrap;
 }
-
-.fperiod-modal-table tr:nth-child(even) td {
-    background: #364D60;
-}
-
-.fperiod-modal-table tr:hover td {
-    background: #3F5B70;
-}
 `;
+
+/**
+ * Aplica opacidade a uma cor hexadecimal, retornando um valor rgba.
+ *
+ * Usado para o fundo escurecido do popup a partir de uma cor solida.
+ */
+function hexToRgba(hex: string, alpha: number): string {
+    const clean = hex.replace("#", "").trim();
+
+    const full =
+        clean.length === 3
+            ? clean.split("").map(c => c + c).join("")
+            : clean;
+
+    const red = parseInt(full.substring(0, 2), 16);
+    const green = parseInt(full.substring(2, 4), 16);
+    const blue = parseInt(full.substring(4, 6), 16);
+
+    if (isNaN(red) || isNaN(green) || isNaN(blue)) {
+        return `rgba(0, 0, 0, ${alpha})`;
+    }
+
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
 
 /**
  * Insere ou atualiza uma tag de estilo no documento.
@@ -267,6 +302,19 @@ function escapeHtml(value: unknown): string {
  */
 function onlyDigits(value: string): string {
     return value.replace(/\D/g, "");
+}
+
+/**
+ * Converte um valor para numero, ou retorna null quando nao for numerico.
+ */
+function toNumber(value: unknown): number | null {
+    if (value === null || value === undefined || value === "") {
+        return null;
+    }
+
+    const parsed = typeof value === "number" ? value : Number(value);
+
+    return isNaN(parsed) ? null : parsed;
 }
 
 /**
@@ -491,6 +539,18 @@ interface PivotRow {
 }
 
 /**
+ * Cores resolvidas do popup, aplicadas dinamicamente ao construir
+ * o conteudo do detalhamento.
+ */
+interface PopupColors {
+    background: string;
+    fontColor: string;
+    headerBackground: string;
+    rowAltColor: string;
+    borderColor: string;
+}
+
+/**
  * Visual principal.
  */
 export class Visual implements IVisual {
@@ -503,12 +563,21 @@ export class Visual implements IVisual {
     private overlay: HTMLElement;
     private modal: HTMLElement;
     private modalTitle: HTMLElement;
+    private modalClose: HTMLElement;
     private modalBody: HTMLElement;
 
     private currentPivotRows: PivotRow[] = [];
     private currentPeriods: PeriodInfo[] = [];
     private currentDetailCols: DataViewMetadataColumn[] = [];
     private currentInfoCols: DataViewMetadataColumn[] = [];
+
+    private popupColors: PopupColors = {
+        background: "#2E4153",
+        fontColor: "#FFFFFF",
+        headerBackground: "#3F5B70",
+        rowAltColor: "#364D60",
+        borderColor: "#4E6E85"
+    };
 
     private exportHeaders: string[] = [];
     private exportRows: string[][] = [];
@@ -554,14 +623,14 @@ export class Visual implements IVisual {
         this.modalTitle.className = "fperiod-modal-title";
         modalHeader.appendChild(this.modalTitle);
 
-        const closeButton = document.createElement("button");
-        closeButton.className = "fperiod-modal-close";
-        closeButton.type = "button";
-        closeButton.textContent = "X";
-        closeButton.setAttribute("aria-label", "Fechar detalhamento");
-        closeButton.addEventListener("click", () => this.closeModal());
+        this.modalClose = document.createElement("button");
+        this.modalClose.className = "fperiod-modal-close";
+        (this.modalClose as HTMLButtonElement).type = "button";
+        this.modalClose.textContent = "X";
+        this.modalClose.setAttribute("aria-label", "Fechar detalhamento");
+        this.modalClose.addEventListener("click", () => this.closeModal());
 
-        modalHeader.appendChild(closeButton);
+        modalHeader.appendChild(this.modalClose);
         this.modal.appendChild(modalHeader);
 
         this.modalBody = document.createElement("div");
@@ -641,12 +710,14 @@ export class Visual implements IVisual {
     }
 
     /**
-     * Aplica as configuracoes escolhidas no painel do Power BI.
+     * Aplica as configuracoes escolhidas no painel do Power BI aos
+     * elementos permanentes (titulo, popup e overlay).
      */
     private applyFormatting(): void {
         const titleSettings = this.formattingSettings.titleCard;
-        const tableSettings = this.formattingSettings.tableCard;
+        const popupSettings = this.formattingSettings.popupCard;
 
+        // Titulo.
         const showTitle = titleSettings.show.value;
         const titleText = titleSettings.text.value?.trim() ?? "";
 
@@ -663,40 +734,30 @@ export class Visual implements IVisual {
         this.titleElement.style.backgroundColor =
             titleSettings.backgroundColor.value.value;
 
-        this.root.style.setProperty(
-            "--fperiod-font-size",
-            `${tableSettings.fontSize.value}px`
+        // Popup: guarda as cores para uso ao montar o conteudo.
+        this.popupColors = {
+            background: popupSettings.backgroundColor.value.value,
+            fontColor: popupSettings.fontColor.value.value,
+            headerBackground: popupSettings.headerBackgroundColor.value.value,
+            rowAltColor: popupSettings.rowAltColor.value.value,
+            borderColor: popupSettings.borderColor.value.value
+        };
+
+        // Overlay escurecido a partir da cor escolhida, com transparencia.
+        this.overlay.style.backgroundColor = hexToRgba(
+            popupSettings.overlayColor.value.value,
+            0.45
         );
 
-        this.root.style.setProperty(
-            "--fperiod-header-font-color",
-            tableSettings.headerFontColor.value.value
-        );
+        // Estilos fixos do container do modal.
+        this.modal.style.background = this.popupColors.background;
+        this.modal.style.color = this.popupColors.fontColor;
+        this.modal.style.border = `1px solid ${this.popupColors.borderColor}`;
 
-        this.root.style.setProperty(
-            "--fperiod-header-background",
-            tableSettings.headerBackgroundColor.value.value
-        );
+        this.modalTitle.style.color = this.popupColors.fontColor;
 
-        this.root.style.setProperty(
-            "--fperiod-group-background",
-            tableSettings.groupHeaderBackgroundColor.value.value
-        );
-
-        this.root.style.setProperty(
-            "--fperiod-odd-row",
-            tableSettings.oddRowColor.value.value
-        );
-
-        this.root.style.setProperty(
-            "--fperiod-even-row",
-            tableSettings.evenRowColor.value.value
-        );
-
-        this.root.style.setProperty(
-            "--fperiod-grid-color",
-            tableSettings.gridColor.value.value
-        );
+        this.modalClose.style.background = this.popupColors.headerBackground;
+        this.modalClose.style.color = this.popupColors.fontColor;
     }
 
     /**
@@ -943,17 +1004,36 @@ export class Visual implements IVisual {
         detailColumns: DataViewMetadataColumn[]
     ): void {
         const tableSettings = this.formattingSettings.tableCard;
+        const totalsSettings = this.formattingSettings.totalsCard;
 
         const headerFontColor = tableSettings.headerFontColor.value.value;
         const headerBackground = tableSettings.headerBackgroundColor.value.value;
         const groupBackground =
             tableSettings.groupHeaderBackgroundColor.value.value;
         const oddRowColor = tableSettings.oddRowColor.value.value;
+        const oddRowFontColor = tableSettings.oddRowFontColor.value.value;
         const evenRowColor = tableSettings.evenRowColor.value.value;
+        const evenRowFontColor = tableSettings.evenRowFontColor.value.value;
         const gridColor = tableSettings.gridColor.value.value;
         const fontSize = tableSettings.fontSize.value;
 
-        const totalColumns = infoColumns.length + periods.length;
+        // Cores dos totais.
+        const totalRowBg = totalsSettings.rowBackgroundColor.value.value;
+        const totalRowColor = totalsSettings.rowFontColor.value.value;
+        const totalColBg = totalsSettings.columnBackgroundColor.value.value;
+        const totalColColor = totalsSettings.columnFontColor.value.value;
+        const cornerBg = totalsSettings.cornerBackgroundColor.value.value;
+        const cornerColor = totalsSettings.cornerFontColor.value.value;
+
+        // Total de colunas: informativas + meses + coluna Total Geral.
+        const totalColumns = infoColumns.length + periods.length + 1;
+
+        // Acumuladores para os totais.
+        const columnTotals = new Map<string, number>();
+        let grandTotal = 0;
+        let hasAnyNumber = false;
+
+        periods.forEach(period => columnTotals.set(period.key, 0));
 
         const parts: string[] = [];
 
@@ -963,7 +1043,7 @@ export class Visual implements IVisual {
 
         parts.push("<thead>");
 
-        // Primeira linha: Dados Informativos a esquerda; Meses a direita.
+        // Primeira linha: Dados Informativos, Meses e Total Geral.
         parts.push("<tr>");
 
         if (infoColumns.length > 0) {
@@ -990,9 +1070,20 @@ export class Visual implements IVisual {
             );
         }
 
+        // Cabecalho de grupo da coluna Total Geral.
+        parts.push(
+            `<th class="fperiod-th-group" ` +
+            `colspan="1" ` +
+            `style="background:${totalColBg};` +
+            `color:${totalColColor};` +
+            `border:1px solid ${gridColor};">` +
+            `Total Geral` +
+            `</th>`
+        );
+
         parts.push("</tr>");
 
-        // Segunda linha: nomes das colunas informativas; nomes dos meses.
+        // Segunda linha: nomes das colunas informativas, nomes dos meses e "Total".
         parts.push("<tr>");
 
         infoColumns.forEach(column => {
@@ -1017,6 +1108,16 @@ export class Visual implements IVisual {
             );
         });
 
+        // Sub-cabecalho da coluna Total Geral.
+        parts.push(
+            `<th class="fperiod-th-total" ` +
+            `style="background:${totalColBg};` +
+            `color:${totalColColor};` +
+            `border:1px solid ${gridColor};">` +
+            `Total` +
+            `</th>`
+        );
+
         parts.push("</tr>");
         parts.push("</thead>");
         parts.push("<tbody>");
@@ -1033,8 +1134,9 @@ export class Visual implements IVisual {
             );
         } else {
             pivotRows.forEach((pivotRow, rowIndex) => {
-                const rowColor =
-                    rowIndex % 2 === 0 ? oddRowColor : evenRowColor;
+                const isOdd = rowIndex % 2 === 0;
+                const rowColor = isOdd ? oddRowColor : evenRowColor;
+                const rowFontColor = isOdd ? oddRowFontColor : evenRowFontColor;
 
                 parts.push("<tr>");
 
@@ -1045,6 +1147,7 @@ export class Visual implements IVisual {
                     parts.push(
                         `<td class="fperiod-td-info" ` +
                         `style="background:${rowColor};` +
+                        `color:${rowFontColor};` +
                         `border:1px solid ${gridColor};">` +
                         `${escapeHtml(this.formatValue(column, value))}` +
                         `</td>`
@@ -1052,10 +1155,25 @@ export class Visual implements IVisual {
                 });
 
                 // Meses depois das colunas informativas.
+                let rowTotal = 0;
+                let rowHasNumber = false;
+
                 periods.forEach((period, periodIndex) => {
                     const rawValue = pivotRow.periodValues.get(period.key);
                     const visible = hasVisibleValue(rawValue);
                     const details = pivotRow.details.get(period.key) ?? [];
+
+                    const numeric = toNumber(rawValue);
+
+                    if (numeric !== null) {
+                        rowTotal += numeric;
+                        rowHasNumber = true;
+                        hasAnyNumber = true;
+                        columnTotals.set(
+                            period.key,
+                            (columnTotals.get(period.key) ?? 0) + numeric
+                        );
+                    }
 
                     const clickable =
                         detailColumns.length > 0 && details.length > 0;
@@ -1074,23 +1192,90 @@ export class Visual implements IVisual {
                         `<td class="fperiod-td-period${cssClickable}"` +
                         `${dataAttributes} ` +
                         `style="background:${rowColor};` +
+                        `color:${rowFontColor};` +
                         `border:1px solid ${gridColor};">` +
                         `${escapeHtml(displayValue)}` +
                         `</td>`
                     );
                 });
 
+                // Coluna Total Geral da linha.
+                grandTotal += rowTotal;
+
+                const rowTotalDisplay = rowHasNumber
+                    ? formatNumber(rowTotal)
+                    : "";
+
+                parts.push(
+                    `<td class="fperiod-td-total" ` +
+                    `style="background:${totalColBg};` +
+                    `color:${totalColColor};` +
+                    `border:1px solid ${gridColor};">` +
+                    `${escapeHtml(rowTotalDisplay)}` +
+                    `</td>`
+                );
+
                 parts.push("</tr>");
             });
         }
 
         parts.push("</tbody>");
+
+        // Rodape fixo (Total Mensal).
+        if (pivotRows.length > 0) {
+            parts.push("<tfoot>");
+            parts.push("<tr>");
+
+            // Rotulo "Total Mensal" ocupando as colunas informativas.
+            const labelColspan = Math.max(infoColumns.length, 1);
+
+            parts.push(
+                `<td class="fperiod-tfoot-cell fperiod-tfoot-label fperiod-tfoot-corner" ` +
+                `colspan="${labelColspan}" ` +
+                `style="background:${totalRowBg};` +
+                `color:${totalRowColor};` +
+                `border:1px solid ${gridColor};">` +
+                `Total Mensal` +
+                `</td>`
+            );
+
+            // Total de cada mes.
+            periods.forEach(period => {
+                const total = columnTotals.get(period.key) ?? 0;
+                const display = hasAnyNumber ? formatNumber(total) : "";
+
+                parts.push(
+                    `<td class="fperiod-tfoot-cell" ` +
+                    `style="background:${totalRowBg};` +
+                    `color:${totalRowColor};` +
+                    `border:1px solid ${gridColor};">` +
+                    `${escapeHtml(display)}` +
+                    `</td>`
+                );
+            });
+
+            // Total geral (canto inferior direito).
+            const grandDisplay = hasAnyNumber ? formatNumber(grandTotal) : "";
+
+            parts.push(
+                `<td class="fperiod-tfoot-cell fperiod-tfoot-corner" ` +
+                `style="background:${cornerBg};` +
+                `color:${cornerColor};` +
+                `border:1px solid ${gridColor};">` +
+                `${escapeHtml(grandDisplay)}` +
+                `</td>`
+            );
+
+            parts.push("</tr>");
+            parts.push("</tfoot>");
+        }
+
         parts.push("</table>");
 
         this.scrollWrap.innerHTML = parts.join("");
 
-        // Ajusta a posicao sticky da segunda linha com base na altura
-        // efetiva da primeira linha.
+        // Ajusta a posicao sticky da segunda linha do cabecalho com base
+        // na altura efetiva da primeira linha.
         window.requestAnimationFrame(() => {
             const groupHeader = this.scrollWrap.querySelector<HTMLElement>(
                 ".fperiod-th-group"
@@ -1104,7 +1289,7 @@ export class Visual implements IVisual {
 
             this.scrollWrap
                 .querySelectorAll<HTMLElement>(
-                    ".fperiod-th-info, .fperiod-th-period"
+                    ".fperiod-th-info, .fperiod-th-period, .fperiod-th-total"
                 )
                 .forEach(element => {
                     element.style.top = `${groupHeight}px`;
@@ -1169,7 +1354,7 @@ export class Visual implements IVisual {
     }
 
     /**
-     * Abre o popup de detalhamento.
+     * Abre o popup de detalhamento, aplicando as cores configuradas.
      */
     private openModal(
         title: string,
@@ -1178,9 +1363,12 @@ export class Visual implements IVisual {
     ): void {
         this.modalTitle.textContent = title;
 
+        const colors = this.popupColors;
+
         if (detailRows.length === 0) {
             this.modalBody.innerHTML =
-                `<p style="color:#CCCCCC;text-align:center;padding:20px;">` +
+                `<p style="color:${colors.fontColor};` +
+                `text-align:center;padding:20px;">` +
                 `Sem registros de detalhe para este periodo.` +
                 `</p>`;
         } else {
@@ -1190,20 +1378,33 @@ export class Visual implements IVisual {
             parts.push("<thead><tr>");
 
             detailColumns.forEach(column => {
-                parts.push(`<th>${escapeHtml(column.displayName)}</th>`);
+                parts.push(
+                    `<th style="background:${colors.headerBackground};` +
+                    `color:${colors.fontColor};` +
+                    `border:1px solid ${colors.borderColor};">` +
+                    `${escapeHtml(column.displayName)}` +
+                    `</th>`
+                );
             });
 
             parts.push("</tr></thead>");
             parts.push("<tbody>");
 
-            detailRows.forEach(detailRow => {
+            detailRows.forEach((detailRow, rowIndex) => {
+                const rowBg =
+                    rowIndex % 2 === 0
+                        ? colors.background
+                        : colors.rowAltColor;
+
                 parts.push("<tr>");
 
                 detailColumns.forEach(column => {
                     parts.push(
-                        `<td>${escapeHtml(
-                            detailRow.values.get(column.index!)
-                        )}</td>`
+                        `<td style="background:${rowBg};` +
+                        `color:${colors.fontColor};` +
+                        `border:1px solid ${colors.borderColor};">` +
+                        `${escapeHtml(detailRow.values.get(column.index!))}` +
+                        `</td>`
                     );
                 });
 
@@ -1229,7 +1430,8 @@ export class Visual implements IVisual {
     }
 
     /**
-     * Prepara os dados na mesma ordem apresentada na tabela.
+     * Prepara os dados na mesma ordem apresentada na tabela,
+     * incluindo a coluna Total Geral e a linha Total Mensal.
      */
     private prepareCsv(
         pivotRows: PivotRow[],
@@ -1239,21 +1441,67 @@ export class Visual implements IVisual {
     ): void {
         this.exportHeaders = [
             ...infoColumns.map(column => column.displayName),
-            ...periods.map(period => period.label)
+            ...periods.map(period => period.label),
+            "Total Geral"
         ];
 
-        this.exportRows = pivotRows.map(pivotRow => [
-            ...infoColumns.map(column => {
-                const value = pivotRow.info.get(column.index!);
-                return this.formatValue(column, value);
-            }),
-            ...periods.map(period => {
+        const columnTotals = new Map<string, number>();
+        let grandTotal = 0;
+
+        periods.forEach(period => columnTotals.set(period.key, 0));
+
+        this.exportRows = pivotRows.map(pivotRow => {
+            let rowTotal = 0;
+
+            const periodCells = periods.map(period => {
                 const value = pivotRow.periodValues.get(period.key);
+                const numeric = toNumber(value);
+
+                if (numeric !== null) {
+                    rowTotal += numeric;
+                    columnTotals.set(
+                        period.key,
+                        (columnTotals.get(period.key) ?? 0) + numeric
+                    );
+                }
+
                 return hasVisibleValue(value)
                     ? this.formatValue(valueColumn, value)
                     : "";
-            })
-        ]);
+            });
+
+            grandTotal += rowTotal;
+
+            return [
+                ...infoColumns.map(column => {
+                    const value = pivotRow.info.get(column.index!);
+                    return this.formatValue(column, value);
+                }),
+                ...periodCells,
+                formatNumber(rowTotal)
+            ];
+        });
+
+        // Linha final com os totais mensais.
+        if (pivotRows.length > 0) {
+            const totalRow: string[] = [];
+
+            infoColumns.forEach((_column, index) => {
+                totalRow.push(index === 0 ? "Total Mensal" : "");
+            });
+
+            if (infoColumns.length === 0) {
+                totalRow.push("Total Mensal");
+            }
+
+            periods.forEach(period => {
+                totalRow.push(formatNumber(columnTotals.get(period.key) ?? 0));
+            });
+
+            totalRow.push(formatNumber(grandTotal));
+
+            this.exportRows.push(totalRow);
+        }
     }
 
     /**

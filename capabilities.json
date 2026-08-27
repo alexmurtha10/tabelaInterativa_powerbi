@@ -31,43 +31,23 @@
             "properties": {
                 "show": {
                     "displayName": "Exibir titulo",
-                    "type": {
-                        "bool": true
-                    }
+                    "type": { "bool": true }
                 },
                 "text": {
                     "displayName": "Texto do titulo",
-                    "type": {
-                        "text": true
-                    }
+                    "type": { "text": true }
                 },
                 "fontSize": {
                     "displayName": "Tamanho do texto",
-                    "type": {
-                        "formatting": {
-                            "fontSize": true
-                        }
-                    }
+                    "type": { "formatting": { "fontSize": true } }
                 },
                 "fontColor": {
                     "displayName": "Cor do texto",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
+                    "type": { "fill": { "solid": { "color": true } } }
                 },
                 "backgroundColor": {
                     "displayName": "Cor do fundo",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
+                    "type": { "fill": { "solid": { "color": true } } }
                 }
             }
         },
@@ -76,71 +56,97 @@
             "properties": {
                 "fontSize": {
                     "displayName": "Tamanho do texto",
-                    "type": {
-                        "formatting": {
-                            "fontSize": true
-                        }
-                    }
+                    "type": { "formatting": { "fontSize": true } }
                 },
                 "headerFontColor": {
                     "displayName": "Cor do texto do cabecalho",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
+                    "type": { "fill": { "solid": { "color": true } } }
                 },
                 "headerBackgroundColor": {
                     "displayName": "Cor do cabecalho",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
+                    "type": { "fill": { "solid": { "color": true } } }
                 },
                 "groupHeaderBackgroundColor": {
                     "displayName": "Cor do cabecalho dos grupos",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
+                    "type": { "fill": { "solid": { "color": true } } }
                 },
                 "oddRowColor": {
-                    "displayName": "Cor das linhas impares",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
+                    "displayName": "Cor de fundo das linhas impares",
+                    "type": { "fill": { "solid": { "color": true } } }
+                },
+                "oddRowFontColor": {
+                    "displayName": "Cor do texto das linhas impares",
+                    "type": { "fill": { "solid": { "color": true } } }
                 },
                 "evenRowColor": {
-                    "displayName": "Cor das linhas pares",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
+                    "displayName": "Cor de fundo das linhas pares",
+                    "type": { "fill": { "solid": { "color": true } } }
+                },
+                "evenRowFontColor": {
+                    "displayName": "Cor do texto das linhas pares",
+                    "type": { "fill": { "solid": { "color": true } } }
                 },
                 "gridColor": {
                     "displayName": "Cor das bordas",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
+                    "type": { "fill": { "solid": { "color": true } } }
+                }
+            }
+        },
+        "totals": {
+            "displayName": "Totais",
+            "properties": {
+                "rowBackgroundColor": {
+                    "displayName": "Cor de fundo da linha Total Mensal",
+                    "type": { "fill": { "solid": { "color": true } } }
+                },
+                "rowFontColor": {
+                    "displayName": "Cor do texto da linha Total Mensal",
+                    "type": { "fill": { "solid": { "color": true } } }
+                },
+                "columnBackgroundColor": {
+                    "displayName": "Cor de fundo da coluna Total Geral",
+                    "type": { "fill": { "solid": { "color": true } } }
+                },
+                "columnFontColor": {
+                    "displayName": "Cor do texto da coluna Total Geral",
+                    "type": { "fill": { "solid": { "color": true } } }
+                },
+                "cornerBackgroundColor": {
+                    "displayName": "Cor de fundo do total geral (canto)",
+                    "type": { "fill": { "solid": { "color": true } } }
+                },
+                "cornerFontColor": {
+                    "displayName": "Cor do texto do total geral (canto)",
+                    "type": { "fill": { "solid": { "color": true } } }
+                }
+            }
+        },
+        "popup": {
+            "displayName": "Popup de Detalhes",
+            "properties": {
+                "overlayColor": {
+                    "displayName": "Cor do fundo escurecido",
+                    "type": { "fill": { "solid": { "color": true } } }
+                },
+                "backgroundColor": {
+                    "displayName": "Cor de fundo do popup",
+                    "type": { "fill": { "solid": { "color": true } } }
+                },
+                "fontColor": {
+                    "displayName": "Cor do texto do popup",
+                    "type": { "fill": { "solid": { "color": true } } }
+                },
+                "headerBackgroundColor": {
+                    "displayName": "Cor do cabecalho do popup",
+                    "type": { "fill": { "solid": { "color": true } } }
+                },
+                "rowAltColor": {
+                    "displayName": "Cor das linhas alternadas do popup",
+                    "type": { "fill": { "solid": { "color": true } } }
+                },
+                "borderColor": {
+                    "displayName": "Cor das bordas do popup",
+                    "type": { "fill": { "solid": { "color": true } } }
                 }
             }
         }
@@ -150,31 +156,13 @@
             "table": {
                 "rows": {
                     "select": [
-                        {
-                            "for": {
-                                "in": "info"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "period"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "value"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "detail"
-                            }
-                        }
+                        { "for": { "in": "info" } },
+                        { "for": { "in": "period" } },
+                        { "for": { "in": "value" } },
+                        { "for": { "in": "detail" } }
                     ],
                     "dataReductionAlgorithm": {
-                        "window": {
-                            "count": 30000
-                        }
+                        "window": { "count": 30000 }
                     }
                 }
             }
